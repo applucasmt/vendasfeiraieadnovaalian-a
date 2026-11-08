@@ -1,27 +1,39 @@
 /*******************************************************
  *  MAQUININHA - WI-FI / CLOUD / BLUETOOTH / PIX QR CODE
- *  Versão: 3.1 (Com validação de token PagBank)
+ *  Versão: 3.2 (Blindado contra nulos e PWA cache)
  *******************************************************/
 
 // =====================================================
 //  SELEÇÃO DE MODO
 // =====================================================
 function mostrarModoMaquininha() {
-  const modo = document.getElementById('modoMaquininha').value;
+  const selectModo = document.getElementById('modoMaquininha');
+  if (!selectModo) return;
+  
+  const modo = selectModo.value;
   localStorage.setItem('modo_maquininha', modo);
 
-  document.getElementById('boxWifi').style.display      = (modo === 'WIFI')      ? 'block' : 'none';
-  document.getElementById('boxCloud').style.display     = (modo === 'CLOUD')     ? 'block' : 'none';
-  document.getElementById('boxBluetooth').style.display = (modo === 'BLUETOOTH') ? 'block' : 'none';
+  const boxWifi = document.getElementById('boxWifi');
+  const boxCloud = document.getElementById('boxCloud');
+  const boxBluetooth = document.getElementById('boxBluetooth');
+
+  if (boxWifi) boxWifi.style.display      = (modo === 'WIFI')      ? 'block' : 'none';
+  if (boxCloud) boxCloud.style.display     = (modo === 'CLOUD')     ? 'block' : 'none';
+  if (boxBluetooth) boxBluetooth.style.display = (modo === 'BLUETOOTH') ? 'block' : 'none';
 }
 
 // =====================================================
 //  WI-FI LOCAL (teste de rede)
 // =====================================================
 async function testarWifiLocal() {
-  const ip    = document.getElementById('wifiIp').value.trim();
-  const porta = document.getElementById('wifiPorta').value.trim() || '8080';
-  const box   = document.getElementById('wifiResultado');
+  const elIp = document.getElementById('wifiIp');
+  const elPorta = document.getElementById('wifiPorta');
+  const box = document.getElementById('wifiResultado');
+  
+  if (!elIp || !box) return;
+
+  const ip    = elIp.value.trim();
+  const porta = (elPorta ? elPorta.value.trim() : '') || '8080';
 
   if (!ip) { box.innerHTML = '<p style="color:red">Digite o IP</p>'; return; }
   box.innerHTML = '<p>⏳ Testando <code>http://' + ip + ':' + porta + '</code>...</p>';
@@ -57,9 +69,18 @@ async function testarWifiLocal() {
 //  PAGSEGURO CLOUD
 // =====================================================
 async function salvarCredenciaisPS() {
-  const email    = document.getElementById('psEmail').value.trim();
-  const tokenPS  = document.getElementById('psToken').value.trim();
-  const ambiente = document.getElementById('psAmbiente').value;
+  const elEmail = document.getElementById('psEmail');
+  const elToken = document.getElementById('psToken');
+  const elAmb = document.getElementById('psAmbiente');
+  const box = document.getElementById('cloudResultado');
+
+  if (!elEmail || !elToken || !box) {
+    return alert('Erro interno: Campos do formulário não encontrados. Atualize a página (Ctrl+F5).');
+  }
+
+  const email    = elEmail.value.trim();
+  const tokenPS  = elToken.value.trim();
+  const ambiente = elAmb ? elAmb.value : 'sandbox';
   
   if (!email || !tokenPS) return alert('Preencha e-mail e token');
 
@@ -83,13 +104,14 @@ async function salvarCredenciaisPS() {
   localStorage.setItem('ps_token', tokenPS);
   localStorage.setItem('ps_ambiente', ambiente);
 
+  box.innerHTML = '<p>⏳ Salvando...</p>';
   const r = await API.call('salvarCredenciaisPagSeguro', {
     email: email,
     tokenPS: tokenPS,
     ambiente: ambiente
   });
 
-  document.getElementById('cloudResultado').innerHTML = r.ok
+  box.innerHTML = r.ok
     ? '<p style="color:#2e7d32">✅ Credenciais salvas no Sheets (ambiente: <strong>' +
       ambiente + '</strong>).<br>Agora valide o token com 🔍.</p>'
     : '<p style="color:#c62828">❌ ' + r.error + '</p>';
@@ -97,6 +119,8 @@ async function salvarCredenciaisPS() {
 
 async function statusPS() {
   const box = document.getElementById('cloudResultado');
+  if (!box) return;
+  
   box.innerHTML = '<p>⏳ Validando token PagBank...</p>';
   const r = await API.call('statusMaquininhaPagSeguro');
   if (!r.ok) {
@@ -112,6 +136,7 @@ async function statusPS() {
 
 async function testarCobrancaPS() {
   const box = document.getElementById('cloudResultado');
+  if (!box) return;
   if (!confirm('Criar cobrança de teste de R$ 1,00?')) return;
 
   box.innerHTML = '<p>⏳ Criando cobrança...</p>';
@@ -153,11 +178,13 @@ function testarMaquininhaRapido() {
     );
   }
 
-  document.querySelector('[data-tab="maquininha"]').click();
+  const abaMaq = document.querySelector('[data-tab="maquininha"]');
+  if (abaMaq) abaMaq.click();
+  
   setTimeout(() => {
     if (modo === 'CLOUD')     statusPS();
     if (modo === 'WIFI')      testarWifiLocal();
-    if (modo === 'BLUETOOTH') testarConexaoBluetooth();
+    if (modo === 'BLUETOOTH') { if(typeof testarConexaoBluetooth === 'function') testarConexaoBluetooth(); }
   }, 100);
 }
 
@@ -204,11 +231,22 @@ async function mostrarPixQRCode(total, descricao) {
   return new Promise(async (resolve) => {
     const box         = document.getElementById('modalPix');
     const qrContainer = document.getElementById('pixQrContainer');
+    const elValor     = document.getElementById('pixValor');
+    const elCopiar    = document.getElementById('pixCopiaCola');
+    const elStatus    = document.getElementById('pixStatus');
 
-    document.getElementById('pixValor').textContent = formatBRL(total);
-    document.getElementById('pixCopiaCola').value   = '';
-    document.getElementById('pixStatus').textContent = '⏳ Gerando cobrança PIX...';
-    document.getElementById('pixStatus').style.color = '#666';
+    if (!box || !qrContainer) {
+      alert('Erro: O modal de PIX não foi encontrado no HTML. Atualize a página (Ctrl+F5).');
+      return resolve(false);
+    }
+
+    if (elValor)  elValor.textContent = formatBRL(total);
+    if (elCopiar) elCopiar.value = '';
+    if (elStatus) {
+      elStatus.textContent = '⏳ Gerando cobrança PIX...';
+      elStatus.style.color = '#666';
+    }
+    
     qrContainer.innerHTML = '<p>⏳ Aguarde...</p>';
     box.classList.add('show');
 
@@ -225,8 +263,7 @@ async function mostrarPixQRCode(total, descricao) {
         qrContainer.innerHTML =
           '<p style="color:#c62828;text-align:center">❌ ' +
           escapeHtml(r.error || 'Erro ao gerar PIX') + '</p>';
-        document.getElementById('pixStatus').textContent =
-          'Toque em Cancelar e escolha outro método de pagamento.';
+        if (elStatus) elStatus.textContent = 'Toque em Cancelar e escolha outro método de pagamento.';
         return;
       }
 
@@ -240,9 +277,10 @@ async function mostrarPixQRCode(total, descricao) {
           '⚠️ Cobrança criada mas sem dados do QR Code.<br><br>' +
           'Resposta:<pre style="text-align:left;font-size:9px;max-height:200px;overflow:auto">' +
           escapeHtml((r.body || '').substring(0, 1500)) + '</pre></div>';
-        document.getElementById('pixStatus').textContent =
-          'Confirme o pagamento manualmente na maquininha.';
-        document.getElementById('pixStatus').style.color = '#c62828';
+        if (elStatus) {
+          elStatus.textContent = 'Confirme o pagamento manualmente na maquininha.';
+          elStatus.style.color = '#c62828';
+        }
         return;
       }
 
@@ -255,13 +293,14 @@ async function mostrarPixQRCode(total, descricao) {
           encoded + '" alt="QR Code PIX" />';
       }
 
-      if (qrText) {
-        document.getElementById('pixCopiaCola').value = qrText;
+      if (qrText && elCopiar) {
+        elCopiar.value = qrText;
       }
 
-      document.getElementById('pixStatus').textContent =
-        '✅ Cobrança gerada! Aguardando pagamento...';
-      document.getElementById('pixStatus').style.color = '#2e7d32';
+      if (elStatus) {
+        elStatus.textContent = '✅ Cobrança gerada! Aguardando pagamento...';
+        elStatus.style.color = '#2e7d32';
+      }
 
       if (pix.expirationDate) {
         const exp = new Date(pix.expirationDate);
@@ -269,9 +308,10 @@ async function mostrarPixQRCode(total, descricao) {
           const diff = exp - new Date();
           if (diff <= 0) {
             clearInterval(intervalo);
-            document.getElementById('pixStatus').textContent =
-              '⏰ QR Code expirado. Cancele e gere novamente.';
-            document.getElementById('pixStatus').style.color = '#c62828';
+            if (elStatus) {
+              elStatus.textContent = '⏰ QR Code expirado. Cancele e gere novamente.';
+              elStatus.style.color = '#c62828';
+            }
           }
         }, 1000);
         window._pixInterval = intervalo;
@@ -286,10 +326,17 @@ async function mostrarPixQRCode(total, descricao) {
 function mostrarQrPixDireto(pix, valor) {
   const box         = document.getElementById('modalPix');
   const qrContainer = document.getElementById('pixQrContainer');
+  const elValor     = document.getElementById('pixValor');
+  const elCopiar    = document.getElementById('pixCopiaCola');
+  const elStatus    = document.getElementById('pixStatus');
 
-  document.getElementById('pixValor').textContent = formatBRL(valor);
-  document.getElementById('pixStatus').textContent = '✅ Cobrança de teste gerada!';
-  document.getElementById('pixStatus').style.color = '#2e7d32';
+  if (!box || !qrContainer) return;
+
+  if (elValor)  elValor.textContent = formatBRL(valor);
+  if (elStatus) {
+    elStatus.textContent = '✅ Cobrança de teste gerada!';
+    elStatus.style.color = '#2e7d32';
+  }
 
   if (pix.qrCodeImage) {
     qrContainer.innerHTML = '<img src="' + pix.qrCodeImage + '" alt="QR Code PIX" />';
@@ -299,8 +346,8 @@ function mostrarQrPixDireto(pix, valor) {
       encodeURIComponent(pix.qrCodeText) + '" alt="QR Code PIX" />';
   }
 
-  if (pix.qrCodeText) {
-    document.getElementById('pixCopiaCola').value = pix.qrCodeText;
+  if (pix.qrCodeText && elCopiar) {
+    elCopiar.value = pix.qrCodeText;
   }
 
   box.classList.add('show');
@@ -309,7 +356,7 @@ function mostrarQrPixDireto(pix, valor) {
 
 function copiarPix() {
   const input = document.getElementById('pixCopiaCola');
-  if (!input.value) return alert('Nada para copiar ainda.');
+  if (!input || !input.value) return alert('Nada para copiar ainda.');
   input.select();
   input.setSelectionRange(0, 99999);
   try {
@@ -341,7 +388,8 @@ function cancelarPix() {
 }
 
 function fecharModalPix() {
-  document.getElementById('modalPix').classList.remove('show');
+  const modal = document.getElementById('modalPix');
+  if (modal) modal.classList.remove('show');
   if (window._pixInterval) {
     clearInterval(window._pixInterval);
     window._pixInterval = null;
