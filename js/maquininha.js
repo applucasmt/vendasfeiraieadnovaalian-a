@@ -1,6 +1,6 @@
 /*******************************************************
  *  MAQUININHA - WI-FI / CLOUD / BLUETOOTH / PIX QR CODE
- *  Versão: 3.0
+ *  Versão: 3.1 (Com validação de token PagBank)
  *******************************************************/
 
 // =====================================================
@@ -60,7 +60,19 @@ async function salvarCredenciaisPS() {
   const email    = document.getElementById('psEmail').value.trim();
   const tokenPS  = document.getElementById('psToken').value.trim();
   const ambiente = document.getElementById('psAmbiente').value;
+  
   if (!email || !tokenPS) return alert('Preencha e-mail e token');
+
+  // 🔥 VALIDAÇÃO: Impede usar o token da própria Igreja (Sheets) por engano
+  const tokenIgreja = localStorage.getItem('api_token') || '';
+  if (tokenPS === tokenIgreja || tokenPS.startsWith('IGREJA_')) {
+    return alert(
+      '❌ ERRO: Você colou o Token da sua API (IGREJA_...) no campo do PagBank!\n\n' +
+      'O Token do PagBank NÃO começa com IGREJA_.\n\n' +
+      'Vá em https://dev.pagbank.uol.com.br, crie uma aplicação "API de Pedidos (Orders)" ' +
+      'e copie o Bearer Token gerado lá.'
+    );
+  }
 
   if (tokenPS.length < 30) {
     if (!confirm('O token parece curto (' + tokenPS.length + ' caracteres). ' +
@@ -114,7 +126,6 @@ async function testarCobrancaPS() {
       '<pre style="font-size:11px;overflow:auto;background:#f3fff3;padding:8px">' +
       escapeHtml(r.body || '') + '</pre>';
 
-    // Se veio PIX, mostra QR Code direto
     if (r.pix && (r.pix.qrCodeText || r.pix.qrCodeImage)) {
       mostrarQrPixDireto(r.pix, 1.00);
     }
@@ -235,7 +246,6 @@ async function mostrarPixQRCode(total, descricao) {
         return;
       }
 
-      // Exibe QR Code
       if (qrImage) {
         qrContainer.innerHTML = '<img src="' + qrImage + '" alt="QR Code PIX" />';
       } else if (qrText) {
@@ -273,9 +283,6 @@ async function mostrarPixQRCode(total, descricao) {
   });
 }
 
-/**
- * Mostra QR Code direto (usado no botão de teste).
- */
 function mostrarQrPixDireto(pix, valor) {
   const box         = document.getElementById('modalPix');
   const qrContainer = document.getElementById('pixQrContainer');
