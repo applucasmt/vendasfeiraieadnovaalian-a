@@ -12,7 +12,7 @@
 </head>
 <body>
 
-<!-- ===== TELA DE CONFIGURAÇÃO INICIAL ===== -->
+<!-- ===== SETUP INICIAL ===== -->
 <div id="setupScreen" class="screen active">
   <div class="card center">
     <h1>⛪ Igreja Vendas</h1>
@@ -30,16 +30,17 @@
   <header class="topbar">
     <div class="brand">⛪ Igreja Vendas</div>
     <nav class="tabs">
-      <button data-tab="dashboard" class="tab active">📊 Dashboard</button>
-      <button data-tab="vendas" class="tab">🛒 Vender</button>
-      <button data-tab="produtos" class="tab">📦 Produtos</button>
-      <button data-tab="relatorios" class="tab">📄 Relatórios</button>
-      <button data-tab="config" class="tab">⚙️ Config</button>
+      <button data-tab="dashboard"   class="tab active">📊 Dashboard</button>
+      <button data-tab="vendas"      class="tab">🛒 Vender</button>
+      <button data-tab="produtos"    class="tab">📦 Produtos</button>
+      <button data-tab="relatorios"  class="tab">📄 Relatórios</button>
+      <button data-tab="maquininha"  class="tab">💳 Maquininha</button>
+      <button data-tab="config"      class="tab">⚙️ Config</button>
     </nav>
   </header>
 
   <main>
-    <!-- DASHBOARD -->
+    <!-- ===== DASHBOARD ===== -->
     <section id="tab-dashboard" class="tab-pane active">
       <div class="kpis" id="kpis"></div>
       <div class="graficos">
@@ -49,7 +50,7 @@
       </div>
     </section>
 
-    <!-- VENDAS -->
+    <!-- ===== VENDAS ===== -->
     <section id="tab-vendas" class="tab-pane">
       <div class="card">
         <h2>🛒 Nova Venda</h2>
@@ -68,14 +69,14 @@
               <option value="CREDITO">💳 Crédito</option>
               <option value="TRANSFERENCIA">🏦 Transferência</option>
             </select>
-            <button class="btn" onclick="testarConexaoBluetooth()">🔵 Testar Minizinha (Bluetooth)</button>
+            <button class="btn" onclick="testarMaquininhaRapido()">🔵 Testar Maquininha</button>
           </div>
           <button class="btn primary big" onclick="finalizarVenda()">✅ Finalizar Venda</button>
         </div>
       </div>
     </section>
 
-    <!-- PRODUTOS -->
+    <!-- ===== PRODUTOS ===== -->
     <section id="tab-produtos" class="tab-pane">
       <div class="card">
         <h2>📦 Cadastrar Produto</h2>
@@ -97,7 +98,7 @@
       </div>
     </section>
 
-    <!-- RELATÓRIOS -->
+    <!-- ===== RELATÓRIOS ===== -->
     <section id="tab-relatorios" class="tab-pane">
       <div class="card">
         <h2>📄 Relatório por Setor</h2>
@@ -107,7 +108,71 @@
       </div>
     </section>
 
-    <!-- CONFIG -->
+    <!-- ===== MAQUININHA ===== -->
+    <section id="tab-maquininha" class="tab-pane">
+      <div class="card">
+        <h2>💳 Configurar Maquininha</h2>
+        <p style="color:#666;font-size:13px">
+          A Minizinha Chip 3 aceita <strong>Wi-Fi</strong> (LAN local) ou <strong>API Cloud</strong> (PagSeguro).
+          Bluetooth foi substituído pelo Wi-Fi neste modelo — o sistema suporta os 3 modos.
+        </p>
+
+        <label>Modo de Integração</label>
+        <select id="modoMaquininha" onchange="mostrarModoMaquininha()">
+          <option value="MANUAL">🖐️ Manual (só registrar no sistema)</option>
+          <option value="WIFI">📶 Wi-Fi Local (detectar na rede)</option>
+          <option value="CLOUD">☁️ PagSeguro Cloud (API oficial)</option>
+          <option value="BLUETOOTH">🔵 Bluetooth (legado)</option>
+        </select>
+      </div>
+
+      <!-- Wi-Fi local -->
+      <div id="boxWifi" class="card" style="display:none">
+        <h3>📶 Wi-Fi Local</h3>
+        <p style="font-size:13px;color:#666">
+          Digite o IP que aparece em <em>Configurações → Rede</em> da Minizinha.
+          O navegador tentará acessar diretamente (só funciona se a maquininha expuser porta HTTP —
+          geralmente <strong>não expõe</strong>; use como teste de rede).
+        </p>
+        <label>IP da Maquininha</label>
+        <input id="wifiIp" placeholder="ex: 192.168.0.123" />
+        <label>Porta</label>
+        <input id="wifiPorta" placeholder="8080" value="8080" />
+        <button class="btn primary" onclick="testarWifiLocal()">🔎 Testar conexão Wi-Fi</button>
+        <div id="wifiResultado" style="margin-top:12px"></div>
+      </div>
+
+      <!-- PagSeguro Cloud -->
+      <div id="boxCloud" class="card" style="display:none">
+        <h3>☁️ PagSeguro Cloud (recomendado)</h3>
+        <p style="font-size:13px;color:#666">
+          Integração oficial via API REST. Obtenha as credenciais em
+          <a href="https://minhaconta.pagseguro.uol.com.br/" target="_blank">minhaconta.pagseguro.uol.com.br</a>
+          → <strong>Integrações → Token de API</strong>.
+        </p>
+        <label>E-mail PagSeguro</label>
+        <input id="psEmail" type="email" placeholder="seu@email.com" />
+        <label>Token de API</label>
+        <input id="psToken" type="password" placeholder="token secreto" />
+        <button class="btn primary" onclick="salvarCredenciaisPS()">💾 Salvar Credenciais</button>
+        <button class="btn" onclick="statusPS()">🔍 Consultar terminais</button>
+        <button class="btn" onclick="testarCobrancaPS()">🧪 Cobrança de teste R$ 1,00</button>
+        <div id="cloudResultado" style="margin-top:12px"></div>
+      </div>
+
+      <!-- Bluetooth -->
+      <div id="boxBluetooth" class="card" style="display:none">
+        <h3>🔵 Bluetooth (legado)</h3>
+        <p style="font-size:13px;color:#666">
+          A Minizinha Chip 3 <strong>não suporta Bluetooth</strong> para integração.
+          Este modo serve para outras maquininhas (ex: Moderninha Smart).
+        </p>
+        <button class="btn primary" onclick="testarConexaoBluetooth()">🔵 Buscar dispositivo</button>
+        <div id="btResultado" style="margin-top:12px"></div>
+      </div>
+    </section>
+
+    <!-- ===== CONFIG ===== -->
     <section id="tab-config" class="tab-pane">
       <div class="card">
         <h2>⚙️ Configuração</h2>
@@ -121,7 +186,7 @@
     </section>
   </main>
 
-  <!-- Modal Ficha do Produto -->
+  <!-- Modal Ficha -->
   <div id="modalFicha" class="modal">
     <div class="ficha" id="fichaConteudo"></div>
     <button class="btn primary" onclick="imprimirFicha()">🖨️ Imprimir Ficha</button>
@@ -136,6 +201,7 @@
 <script src="js/vendas.js"></script>
 <script src="js/relatorios.js"></script>
 <script src="js/bluetooth.js"></script>
+<script src="js/maquininha.js"></script>
 <script>
   if ('serviceWorker' in navigator) {
     navigator.serviceWorker.register('service-worker.js');
