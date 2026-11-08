@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta name="theme-color" content="#4a7c59" />
+<title>Igreja Vendas</title>
+<link rel="manifest" href="manifest.json" />
+<link rel="stylesheet" href="css/style.css" />
+<link rel="icon" href="icons/icon-192.png" />
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+
+<!-- ===== TELA DE CONFIGURAÇÃO INICIAL ===== -->
+<div id="setupScreen" class="screen active">
+  <div class="card center">
+    <h1>⛪ Igreja Vendas</h1>
+    <p>Configure a URL do Web App e o Token</p>
+    <label>URL do Web App (Apps Script)</label>
+    <input id="cfgUrl" placeholder="https://script.google.com/macros/s/.../exec" />
+    <label>Token da API</label>
+    <input id="cfgToken" placeholder="IGREJA_xxxx" />
+    <button class="btn primary" onclick="salvarConfig()">Salvar e entrar</button>
+  </div>
+</div>
+
+<!-- ===== APP ===== -->
+<div id="appScreen" class="screen">
+  <header class="topbar">
+    <div class="brand">⛪ Igreja Vendas</div>
+    <nav class="tabs">
+      <button data-tab="dashboard" class="tab active">📊 Dashboard</button>
+      <button data-tab="vendas" class="tab">🛒 Vender</button>
+      <button data-tab="produtos" class="tab">📦 Produtos</button>
+      <button data-tab="relatorios" class="tab">📄 Relatórios</button>
+      <button data-tab="config" class="tab">⚙️ Config</button>
+    </nav>
+  </header>
+
+  <main>
+    <!-- DASHBOARD -->
+    <section id="tab-dashboard" class="tab-pane active">
+      <div class="kpis" id="kpis"></div>
+      <div class="graficos">
+        <div class="card"><h3>Vendas por Setor</h3><canvas id="chartSetor"></canvas></div>
+        <div class="card"><h3>Métodos de Pagamento</h3><canvas id="chartMetodo"></canvas></div>
+        <div class="card wide"><h3>Top Produtos</h3><canvas id="chartProduto"></canvas></div>
+      </div>
+    </section>
+
+    <!-- VENDAS -->
+    <section id="tab-vendas" class="tab-pane">
+      <div class="card">
+        <h2>🛒 Nova Venda</h2>
+        <input id="buscaProduto" placeholder="🔎 Buscar produto..." oninput="filtrarProdutosVenda()" />
+        <div id="listaProdutosVenda" class="grid-produtos"></div>
+        <div class="carrinho">
+          <h3>Carrinho</h3>
+          <div id="carrinhoItens"></div>
+          <div class="total">Total: <strong id="carrinhoTotal">R$ 0,00</strong></div>
+          <div class="pagamentos">
+            <label>Forma de Pagamento:</label>
+            <select id="metodoPagamento">
+              <option value="DINHEIRO">💵 Dinheiro</option>
+              <option value="PIX">📱 PIX</option>
+              <option value="DEBITO">💳 Débito</option>
+              <option value="CREDITO">💳 Crédito</option>
+              <option value="TRANSFERENCIA">🏦 Transferência</option>
+            </select>
+            <button class="btn" onclick="testarConexaoBluetooth()">🔵 Testar Minizinha (Bluetooth)</button>
+          </div>
+          <button class="btn primary big" onclick="finalizarVenda()">✅ Finalizar Venda</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- PRODUTOS -->
+    <section id="tab-produtos" class="tab-pane">
+      <div class="card">
+        <h2>📦 Cadastrar Produto</h2>
+        <form id="formProduto" onsubmit="salvarProduto(event)">
+          <input type="hidden" id="prodId" />
+          <label>Nome</label><input id="prodNome" required />
+          <label>Descrição</label><textarea id="prodDesc"></textarea>
+          <label>Preço (R$)</label><input id="prodPreco" type="number" step="0.01" required />
+          <label>Setor</label><select id="prodSetor" required></select>
+          <label>Estoque inicial</label><input id="prodEstoque" type="number" value="0" />
+          <label>Foto</label><input id="prodFoto" type="file" accept="image/*" onchange="previewFoto(event)" />
+          <img id="previewFoto" class="preview" />
+          <button class="btn primary" type="submit">💾 Salvar Produto</button>
+        </form>
+      </div>
+      <div class="card">
+        <h2>Produtos Cadastrados</h2>
+        <div id="listaProdutosAdmin" class="grid-produtos"></div>
+      </div>
+    </section>
+
+    <!-- RELATÓRIOS -->
+    <section id="tab-relatorios" class="tab-pane">
+      <div class="card">
+        <h2>📄 Relatório por Setor</h2>
+        <button class="btn primary" onclick="gerarRelatorio()">🔄 Gerar Relatório</button>
+        <button class="btn" onclick="window.print()">🖨️ Imprimir</button>
+        <div id="relatorioConteudo"></div>
+      </div>
+    </section>
+
+    <!-- CONFIG -->
+    <section id="tab-config" class="tab-pane">
+      <div class="card">
+        <h2>⚙️ Configuração</h2>
+        <label>URL do Web App</label><input id="cfgUrl2" />
+        <label>Token</label><input id="cfgToken2" />
+        <button class="btn primary" onclick="atualizarConfig()">Salvar</button>
+        <hr />
+        <button class="btn" onclick="sincronizar()">🔄 Recarregar dados</button>
+        <button class="btn danger" onclick="logout()">🚪 Sair</button>
+      </div>
+    </section>
+  </main>
+
+  <!-- Modal Ficha do Produto -->
+  <div id="modalFicha" class="modal">
+    <div class="ficha" id="fichaConteudo"></div>
+    <button class="btn primary" onclick="imprimirFicha()">🖨️ Imprimir Ficha</button>
+    <button class="btn" onclick="fecharFicha()">Fechar</button>
+  </div>
+</div>
+
+<script src="js/api.js"></script>
+<script src="js/app.js"></script>
+<script src="js/dashboard.js"></script>
+<script src="js/produtos.js"></script>
+<script src="js/vendas.js"></script>
+<script src="js/relatorios.js"></script>
+<script src="js/bluetooth.js"></script>
+<script>
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('service-worker.js');
+  }
+</script>
+</body>
+</html>
