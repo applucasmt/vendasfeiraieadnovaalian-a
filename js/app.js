@@ -1,4 +1,6 @@
-// ---------- Estado global ----------
+// =====================================================
+//  ESTADO GLOBAL
+// =====================================================
 const STATE = {
   setores: [],
   produtos: [],
@@ -6,15 +8,17 @@ const STATE = {
   lastFicha: null
 };
 
-// ---------- Inicialização ----------
+// =====================================================
+//  INICIALIZAÇÃO
+// =====================================================
 document.addEventListener('DOMContentLoaded', () => {
   const url   = localStorage.getItem('api_url');
   const token = localStorage.getItem('api_token');
+
   if (url && token) {
     entrarApp();
   } else {
     mostrarTela('setupScreen');
-    // pré-preencher se já existir
     document.getElementById('cfgUrl').value   = url   || '';
     document.getElementById('cfgToken').value = token || '';
   }
@@ -57,6 +61,9 @@ async function entrarApp() {
   await sincronizar();
 }
 
+// =====================================================
+//  TABS
+// =====================================================
 function configurarTabs() {
   document.querySelectorAll('.tab').forEach(btn => {
     btn.onclick = () => {
@@ -64,12 +71,22 @@ function configurarTabs() {
       document.querySelectorAll('.tab-pane').forEach(p => p.classList.remove('active'));
       btn.classList.add('active');
       document.getElementById('tab-' + btn.dataset.tab).classList.add('active');
+
       if (btn.dataset.tab === 'dashboard')  carregarDashboard();
-      if (btn.dataset.tab === 'relatorios') /* lazy */;
+      if (btn.dataset.tab === 'maquininha') {
+        document.getElementById('modoMaquininha').value =
+          localStorage.getItem('modo_maquininha') || 'MANUAL';
+        mostrarModoMaquininha();
+        document.getElementById('psEmail').value = localStorage.getItem('ps_email') || '';
+        document.getElementById('psToken').value = localStorage.getItem('ps_token') || '';
+      }
     };
   });
 }
 
+// =====================================================
+//  SINCRONIZAÇÃO
+// =====================================================
 async function sincronizar() {
   try {
     const [rSet, rProd] = await Promise.all([
@@ -94,6 +111,9 @@ function preencherSelectSetores() {
     STATE.setores.map(s => `<option value="${s.id}">${s.nome}</option>`).join('');
 }
 
+// =====================================================
+//  HELPERS
+// =====================================================
 function formatBRL(v) {
   return Number(v || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
 }
