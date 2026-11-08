@@ -62,13 +62,14 @@
           <div class="total">Total: <strong id="carrinhoTotal">R$ 0,00</strong></div>
           <div class="pagamentos">
             <label>Forma de Pagamento:</label>
-            <select id="metodoPagamento">
+            <select id="metodoPagamento" onchange="avisoMetodo()">
               <option value="DINHEIRO">💵 Dinheiro</option>
-              <option value="PIX">📱 PIX</option>
+              <option value="PIX">📱 PIX (QR Code)</option>
               <option value="DEBITO">💳 Débito</option>
               <option value="CREDITO">💳 Crédito</option>
               <option value="TRANSFERENCIA">🏦 Transferência</option>
             </select>
+            <div id="avisoMetodo" style="font-size:12px;color:#666;margin-top:6px"></div>
             <button class="btn" onclick="testarMaquininhaRapido()">🔵 Testar Maquininha</button>
           </div>
           <button class="btn primary big" onclick="finalizarVenda()">✅ Finalizar Venda</button>
@@ -147,13 +148,20 @@
         <h3>☁️ PagSeguro Cloud (recomendado)</h3>
         <p style="font-size:13px;color:#666">
           Integração oficial via API REST. Obtenha as credenciais em
-          <a href="https://minhaconta.pagseguro.uol.com.br/" target="_blank">minhaconta.pagseguro.uol.com.br</a>
-          → <strong>Integrações → Token de API</strong>.
+          <a href="https://dev.pagbank.uol.com.br/" target="_blank">dev.pagbank.uol.com.br</a>
+          → <strong>Vendas → Aplicações → Criar aplicação → API de Pedidos (Orders)</strong>.
         </p>
         <label>E-mail PagSeguro</label>
         <input id="psEmail" type="email" placeholder="seu@email.com" />
-        <label>Token de API</label>
+        <label>Token de API (Bearer Token)</label>
         <input id="psToken" type="password" placeholder="token secreto" />
+        
+        <label>Ambiente</label>
+        <select id="psAmbiente">
+          <option value="sandbox">🧪 Sandbox (teste, não cobra)</option>
+          <option value="producao">💵 Produção (cobra de verdade)</option>
+        </select>
+
         <button class="btn primary" onclick="salvarCredenciaisPS()">💾 Salvar Credenciais</button>
         <button class="btn" onclick="statusPS()">🔍 Consultar terminais</button>
         <button class="btn" onclick="testarCobrancaPS()">🧪 Cobrança de teste R$ 1,00</button>
@@ -192,6 +200,30 @@
     <button class="btn primary" onclick="imprimirFicha()">🖨️ Imprimir Ficha</button>
     <button class="btn" onclick="fecharFicha()">Fechar</button>
   </div>
+
+  <!-- Modal PIX QR Code -->
+  <div id="modalPix" class="modal">
+    <div class="pix-box">
+      <h2 style="text-align:center;color:#4a7c59;margin-bottom:8px">📱 Pague com PIX</h2>
+      <div class="pix-valor" id="pixValor"></div>
+      <div id="pixQrContainer" class="pix-qr"></div>
+      <p style="text-align:center;font-size:12px;color:#666;margin:12px 0">
+        Abra o app do seu banco → Escaneie o QR Code ou use o Copia-e-Cola
+      </p>
+      <div class="pix-copia">
+        <input id="pixCopiaCola" readonly />
+        <button class="btn primary" onclick="copiarPix()">📋 Copiar</button>
+      </div>
+      <p id="pixStatus" style="text-align:center;margin:12px 0;font-size:13px"></p>
+      <button class="btn primary" style="width:100%" onclick="confirmarPixPago()">
+        ✅ Confirmar Pagamento Recebido
+      </button>
+      <button class="btn" style="width:100%;margin-top:8px" onclick="cancelarPix()">
+        ❌ Cancelar
+      </button>
+    </div>
+  </div>
+
 </div>
 
 <script src="js/api.js"></script>
